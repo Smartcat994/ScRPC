@@ -17,5 +17,4 @@ import lombok.*;
 @ToString
 public class RpcResponse {
     private String message;
-
 }

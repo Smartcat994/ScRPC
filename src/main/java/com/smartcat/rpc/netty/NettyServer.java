@@ -26,17 +26,17 @@ import org.slf4j.LoggerFactory;
  * version: 1.0.0
  */
 public class NettyServer {
-    private static final Logger log = LoggerFactory.getLogger(NettyServer.class);
-
+    private static final Logger logger = LoggerFactory.getLogger(NettyServer.class);
     private final int port;
 
-    public NettyServer(int port){this.port = port;}
+    public NettyServer(int port) {
+        this.port = port;
+    }
 
-    private void run(){
+    public void run() {
         EventLoopGroup bossGroup = new NioEventLoopGroup();
         EventLoopGroup workerGroup = new NioEventLoopGroup();
         KryoSerializer kryoSerializer = new KryoSerializer();
-
         try {
             ServerBootstrap b = new ServerBootstrap();
             b.group(bossGroup, workerGroup)
@@ -53,7 +53,7 @@ public class NettyServer {
                         protected void initChannel(SocketChannel ch) {
                             ch.pipeline().addLast(new NettyKryoDecoder(kryoSerializer, RpcRequest.class));
                             ch.pipeline().addLast(new NettyKryoEncoder(kryoSerializer, RpcResponse.class));
-                            ch.pipeline().addLast(new NettyClientHandler());
+                            ch.pipeline().addLast(new NettyServerHandler());
                         }
                     });
 
@@ -62,11 +62,15 @@ public class NettyServer {
             // 等待服务端监听端口关闭
             f.channel().closeFuture().sync();
         } catch (InterruptedException e) {
-            log.error("occur exception when start server:", e);
+            logger.error("occur exception when start server:", e);
         } finally {
             bossGroup.shutdownGracefully();
             workerGroup.shutdownGracefully();
         }
+    }
+
+    public static void main(String[] args) {
+        new NettyServer(8889).run();
     }
 
 

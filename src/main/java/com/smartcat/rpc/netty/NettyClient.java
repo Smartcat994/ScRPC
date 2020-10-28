@@ -6,10 +6,7 @@ import com.smartcat.rpc.kryo.serialize.KryoSerializer;
 import com.smartcat.rpc.kryo.serialize.NettyKryoDecoder;
 import com.smartcat.rpc.kryo.serialize.NettyKryoEncoder;
 import io.netty.bootstrap.Bootstrap;
-import io.netty.channel.Channel;
-import io.netty.channel.ChannelFuture;
-import io.netty.channel.ChannelInitializer;
-import io.netty.channel.ChannelOption;
+import io.netty.channel.*;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.SocketChannel;
 import io.netty.channel.socket.nio.NioSocketChannel;
@@ -37,56 +34,71 @@ public class NettyClient {
         this.port = port;
     }
 
-
+    // 初始化相关资源比如 EventLoopGroup, Bootstrap
     static {
-        NioEventLoopGroup eventLoopGroup = new NioEventLoopGroup();
+        EventLoopGroup eventLoopGroup = new NioEventLoopGroup();
         b = new Bootstrap();
         KryoSerializer kryoSerializer = new KryoSerializer();
-        b.group(eventLoopGroup).channel(NioSocketChannel.class)
-                .handler(new LoggingHandler(LogLevel.ERROR))
+        b.group(eventLoopGroup)
+                .channel(NioSocketChannel.class)
+                .handler(new LoggingHandler(LogLevel.INFO))
+                // 连接的超时时间，超过这个时间还是建立不上的话则代表连接失败
+                //  如果 15 秒之内没有发送数据给服务端的话，就发送一次心跳请求
                 .option(ChannelOption.CONNECT_TIMEOUT_MILLIS, 5000)
                 .handler(new ChannelInitializer<SocketChannel>() {
                     @Override
-                    protected void initChannel(SocketChannel socketChannel) throws Exception {
-                        socketChannel.pipeline().addLast(new NettyKryoDecoder(kryoSerializer, RpcResponse.class));
-                        socketChannel.pipeline().addLast(new NettyKryoEncoder(kryoSerializer, RpcRequest.class));
-                        socketChannel.pipeline().addLast(new NettyClientHandler());
+                    protected void initChannel(SocketChannel ch) {
+                        /*
+                         自定义序列化编解码器
+                         */
+                        // RpcResponse -> ByteBuf
+                        ch.pipeline().addLast(new NettyKryoDecoder(kryoSerializer, RpcResponse.class));
+                        // ByteBuf -> RpcRequest
+                        ch.pipeline().addLast(new NettyKryoEncoder(kryoSerializer, RpcRequest.class));
+                        ch.pipeline().addLast(new NettyClientHandler());
                     }
                 });
     }
 
-
     /**
-     * 最关键的地方
-     * 通过这个方法你可以将消息也就是RpcRequest 对象发送到服务端，
-     * 并且你可以同步获取到服务端返回的结果也就是RpcResponse 对象。
-     * @param rpcRequest 请求
-     * @return 收到请求后返回的相应结果
+     * 发送消息到服务端
+     *
+     * @param rpcRequest 消息体
+     * @return 服务端返回的数据
      */
-    public RpcResponse sendMessage(RpcRequest rpcRequest){
-        try{
-            //使用异步进行操作
+    public RpcResponse sendMessage(RpcRequest rpcRequest) {
+        try {
             ChannelFuture f = b.connect(host, port).sync();
             logger.info("client connect  {}", host + ":" + port);
             Channel futureChannel = f.channel();
             logger.info("send message");
-            if (futureChannel!=null){
+            if (futureChannel != null) {
                 futureChannel.writeAndFlush(rpcRequest).addListener(future -> {
-                    if (future.isSuccess()){
+                    if (future.isSuccess()) {
                         logger.info("client send message: [{}]", rpcRequest.toString());
-                    }else {
+                    } else {
                         logger.error("Send failed:", future.cause());
                     }
                 });
-                //阻塞等待 ，直到Channel关闭
                 futureChannel.closeFuture().sync();
-                // 将服务端返回的数据也就是RpcResponse对象取出
                 AttributeKey<RpcResponse> key = AttributeKey.valueOf("rpcResponse");
                 return futureChannel.attr(key).get();
             }
         } catch (InterruptedException e) {
-            e.printStackTrace();
+            logger.error("occur exception when connect server:", e);
         }
         return null;
+    }
+
+    public static void main(String[] args) {
+        RpcRequest rpcRequest = RpcRequest.builder()
+                .interfaceName("interface")
+                .methodName("hello").build();
+        NettyClient nettyClient = new NettyClient("127.0.0.1", 8889);
+        for (int i = 0; i < 3; i++) {
+            nettyClient.sendMessage(rpcRequest);
+        }
+        RpcResponse rpcResponse = nettyClient.sendMessage(rpcRequest);
+        System.out.println(rpcResponse.toString());
     }
 }
