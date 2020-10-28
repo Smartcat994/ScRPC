@@ -1,6 +1,6 @@
 package com.smartcat.rpc.kryo.dto;
 
-import lombok.Data;
+import lombok.*;
 
 /**
  * description: RpcResponse
@@ -10,7 +10,11 @@ import lombok.Data;
  * version: 1.0.0
  */
 
-@Data
+@AllArgsConstructor
+@Getter
+@NoArgsConstructor
+@Builder
+@ToString
 public class RpcResponse {
     private String message;
 

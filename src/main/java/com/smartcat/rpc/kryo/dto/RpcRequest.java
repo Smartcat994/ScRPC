@@ -1,6 +1,6 @@
 package com.smartcat.rpc.kryo.dto;
 
-import lombok.Data;
+import lombok.*;
 
 /**
  * description: RpcRequest
@@ -9,7 +9,11 @@ import lombok.Data;
  * @author: 张哲珲
  * version: 1.0.0
  */
-@Data
+@AllArgsConstructor
+@Getter
+@NoArgsConstructor
+@Builder
+@ToString
 public class RpcRequest {
     private String interfaceName;
     private String methodName;
