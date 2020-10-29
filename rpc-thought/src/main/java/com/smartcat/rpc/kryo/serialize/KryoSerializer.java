@@ -3,8 +3,8 @@ package com.smartcat.rpc.kryo.serialize;
 import com.esotericsoftware.kryo.Kryo;
 import com.esotericsoftware.kryo.io.Input;
 import com.esotericsoftware.kryo.io.Output;
-import com.smartcat.rpc.kryo.dto.RpcRequest;
 import com.smartcat.rpc.kryo.dto.RpcResponse;
+import com.smartcat.rpc.kryo.dto.RpcRequest;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
