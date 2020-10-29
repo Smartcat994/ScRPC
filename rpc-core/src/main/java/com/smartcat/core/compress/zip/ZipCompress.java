@@ -83,7 +83,7 @@ public class ZipCompress implements Compress {
         }
 
 
-        System.out.println("***********");
+        System.out.println("**********");
         byte[] decompress = zipCompress.decompress(compress);
         for (byte b : decompress) {
             System.out.println(b);
