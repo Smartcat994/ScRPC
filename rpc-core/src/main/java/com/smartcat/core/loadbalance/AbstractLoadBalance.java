@@ -13,7 +13,7 @@ public abstract class AbstractLoadBalance implements LoadBalance {
 
     @Override
     public String selectServiceAddress(List<String> serviceAddresses) {
-        if (serviceAddresses == null || serviceAddresses.size() == 0) {
+        if (serviceAddresses == null || serviceAddresses.isEmpty()) {
             return null;
         }
         if (serviceAddresses.size() == 1) {
