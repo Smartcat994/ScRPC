@@ -8,6 +8,7 @@ import com.smartcat.core.remoting.dto.RpcRequest;
 import com.smartcat.core.remoting.dto.RpcResponse;
 import com.smartcat.core.remoting.transport.ClientTransport;
 import com.smartcat.core.remoting.transport.netty.client.NettyClientTransport;
+import com.smartcat.core.remoting.transport.socket.SocketRpcClient;
 import lombok.extern.slf4j.Slf4j;
 
 import java.lang.reflect.InvocationHandler;
@@ -15,6 +16,7 @@ import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
 
 /**
  * description: RpcClientProxy
@@ -68,7 +70,7 @@ public class RpcClientProxy implements InvocationHandler {
     }
 
     @Override
-    public Object invoke(Object proxy, Method method, Object[] args) {
+    public Object invoke(Object proxy, Method method, Object[] args) throws ExecutionException, InterruptedException {
         log.info("invoked method: [{}]", method.getName());
         //构建请求代理类
         RpcRequest rpcRequest = RpcRequest.builder().methodName(method.getName())
