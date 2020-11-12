@@ -1,8 +1,7 @@
 package com.smartcat.common.util;
 
-import com.smartcat.common.exception.RpcConfigEnum;
+import com.smartcat.common.enums.RpcConfigEnum;
 import com.smartcat.common.exception.RpcException;
-import com.sun.deploy.security.CertStore;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.curator.RetryPolicy;
 import org.apache.curator.framework.CuratorFramework;
