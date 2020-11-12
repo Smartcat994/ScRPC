@@ -1,29 +1,54 @@
 package com.smartcat.core.remoting.handler;
 
-import com.smartcat.common.util.CuratorUtils;
-import com.smartcat.common.util.ThreadPoolFactoryUtils;
+import com.smartcat.common.exception.RpcException;
+import com.smartcat.common.factory.SingletonFactory;
+import com.smartcat.core.provider.ServiceProvider;
+
+import com.smartcat.core.provider.ServiceProviderImpl;
+import com.smartcat.core.remoting.dto.RpcRequest;
 import lombok.extern.slf4j.Slf4j;
 
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
+
 /**
- * description: RpcRequestHandler
- * date: 2020/10/29 16:06
+ * RpcRequest processor
  *
- * @author: 张哲珲
- * version: 1.0.0
+ * @author shuang.kou
+ * @createTime 2020年05月13日 09:05:00
  */
 @Slf4j
-class CustomShutdownHook {
-    private static final CustomShutdownHook CUSTOM_SHUTDOWN_HOOK = new CustomShutdownHook();
+public class RpcRequestHandler {
+    private final ServiceProvider serviceProvider;
 
-    public static CustomShutdownHook getCustomShutdownHook() {
-        return CUSTOM_SHUTDOWN_HOOK;
+    public RpcRequestHandler() {
+        serviceProvider = SingletonFactory.getInstance(ServiceProviderImpl.class);
     }
 
-    public void clearAll() {
-        log.info("addShutdownHook for clearAll");
-        Runtime.getRuntime().addShutdownHook(new Thread(() -> {
-            CuratorUtils.clearRegistry(CuratorUtils.getZkClient());
-            ThreadPoolFactoryUtils.shutDownAllThreadPool();
-        }));
+    /**
+     * Processing rpcRequest: call the corresponding method, and then return the method
+     */
+    public Object handle(RpcRequest rpcRequest) {
+        Object service = serviceProvider.getService(rpcRequest.toRpcProperties());
+        return invokeTargetMethod(rpcRequest, service);
+    }
+
+    /**
+     * get method execution results
+     *
+     * @param rpcRequest client request
+     * @param service    service object
+     * @return the result of the target method execution
+     */
+    private Object invokeTargetMethod(RpcRequest rpcRequest, Object service) {
+        Object result;
+        try {
+            Method method = service.getClass().getMethod(rpcRequest.getMethodName(), rpcRequest.getParamTypes());
+            result = method.invoke(service, rpcRequest.getParameters());
+            log.info("service:[{}] successful invoke method:[{}]", rpcRequest.getInterfaceName(), rpcRequest.getMethodName());
+        } catch (NoSuchMethodException | IllegalArgumentException | InvocationTargetException | IllegalAccessException e) {
+            throw new RpcException(e.getMessage(), e);
+        }
+        return result;
     }
 }
